@@ -35,12 +35,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Создаем строки для каждой горячей клавиши
   Object.entries(HOTKEY_LABELS).forEach(([key, label]) => {
+    // Создаем основной контейнер строки
     const row = document.createElement("div");
     row.className = "hotkey-row";
-    row.innerHTML = `
-      <span>${label}:</span>
-      <input type="text" id="${key}" maxlength="10">
-    `;
+
+    // Создаем элемент для метки
+    const labelSpan = document.createElement("span");
+    labelSpan.textContent = `${label}:`;
+
+    // Создаем input
+    const input = document.createElement("input");
+    input.type = "text";
+    input.id = key;
+    input.maxLength = "10";
+
+    // Добавляем элементы в строку
+    row.appendChild(labelSpan);
+    row.appendChild(input);
+
+    // Добавляем строку в контейнер
     container.appendChild(row);
   });
 
@@ -65,6 +78,15 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  function showNotification() {
+    const notification = document.getElementById("notification");
+    notification.classList.add("show");
+
+    setTimeout(() => {
+      notification.classList.remove("show");
+    }, 2000);
+  }
+
   // Сохранение настроек
   document.getElementById("saveBtn").addEventListener("click", () => {
     const hotkeys = {};
@@ -74,12 +96,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     browser.storage.local.set({ hotkeys }).then(() => {
-      // Отправляем сообщение content скрипту
       browser.tabs.query({ active: true, currentWindow: true }).then((tabs) => {
         browser.tabs.sendMessage(tabs[0].id, {
           type: "UPDATE_HOTKEYS",
           hotkeys,
         });
+        showNotification();
       });
     });
   });
