@@ -30,6 +30,35 @@ const HOTKEY_LABELS = {
   fullscreen: "Полноэкранный режим",
 };
 
+const CYRILLIC_TO_LATIN = {
+  Ц: "W",
+  А: "F",
+  В: "D",
+  С: "S",
+  Е: "T",
+  Н: "Y",
+  К: "R",
+  М: "V",
+  О: "J",
+  Р: "P",
+  Т: "N",
+  У: "G",
+  Х: "H",
+  Й: "Q",
+  Ы: "I",
+  Ф: "A",
+  П: "Z",
+  Л: "K",
+  Д: "L",
+  З: "X",
+  Ш: "C",
+  Щ: "B",
+  Ч: "M",
+  Ь: "E",
+  Б: "U",
+  Ю: "O",
+};
+
 document.addEventListener("DOMContentLoaded", () => {
   const container = document.getElementById("hotkeyContainer");
 
@@ -37,6 +66,9 @@ document.addEventListener("DOMContentLoaded", () => {
   Object.entries(HOTKEY_LABELS).forEach(([key, label]) => {
     const row = document.createElement("div");
     row.className = "hotkey-row";
+
+    const rowContent = document.createElement("div");
+    rowContent.className = "hotkey-row-content";
 
     const labelSpan = document.createElement("span");
     labelSpan.textContent = `${label}:`;
@@ -51,8 +83,10 @@ document.addEventListener("DOMContentLoaded", () => {
     resetButton.textContent = "Сбросить";
     resetButton.addEventListener("click", () => resetSingle(key));
 
-    row.appendChild(labelSpan);
-    row.appendChild(input);
+    rowContent.appendChild(labelSpan);
+    rowContent.appendChild(input);
+
+    row.appendChild(rowContent);
     row.appendChild(resetButton);
 
     container.appendChild(row);
@@ -63,7 +97,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const input = document.getElementById(key);
     if (input && DEFAULT_HOTKEYS[key]) {
       input.value = DEFAULT_HOTKEYS[key];
-      showNotification("Настройка сброшена");
+      showNotification("Настройка сброшена", "notification-error");
     }
   }
 
@@ -75,12 +109,12 @@ document.addEventListener("DOMContentLoaded", () => {
         input.value = value;
       }
     });
-    showNotification("Все настройки сброшены");
+    showNotification("Все настройки сброшены", "notification-error");
   }
 
   // Функция показа уведомления с разным текстом
-  function showNotification(text = "Настройки сохранены") {
-    const notification = document.getElementById("notification");
+  function showNotification(text, type = "notification-success") {
+    const notification = document.getElementById(type);
     notification.textContent = text;
     notification.classList.add("show");
 
@@ -104,9 +138,27 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll("input").forEach((input) => {
     input.addEventListener("keydown", (e) => {
       e.preventDefault();
-      let key = e.key;
+      let key = e.key.toUpperCase();
       if (key === " ") key = "Space";
-      input.value = key;
+
+      // Преобразование кириллических символов в латинские
+      if (CYRILLIC_TO_LATIN[key]) {
+        key = CYRILLIC_TO_LATIN[key];
+      }
+
+      // Проверка на дублирование горячих клавиш
+      const isDuplicate = Object.keys(HOTKEY_LABELS).some(
+        (hotkey) => document.getElementById(hotkey).value.toUpperCase() === key
+      );
+
+      if (isDuplicate) {
+        showNotification(
+          "Такая кнопка уже назначена",
+          "notification-duplicate"
+        );
+      } else {
+        input.value = key;
+      }
     });
   });
 
@@ -115,7 +167,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const hotkeys = {};
     Object.keys(HOTKEY_LABELS).forEach((key) => {
       const input = document.getElementById(key);
-      hotkeys[key] = input.value;
+      hotkeys[key] = input.value.toUpperCase();
     });
 
     browser.storage.local.set({ hotkeys }).then(() => {
@@ -124,7 +176,7 @@ document.addEventListener("DOMContentLoaded", () => {
           type: "UPDATE_HOTKEYS",
           hotkeys,
         });
-        showNotification();
+        showNotification("Настройки сохранены", "notification-success");
       });
     });
   });
